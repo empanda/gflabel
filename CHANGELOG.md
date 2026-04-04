@@ -2,6 +2,9 @@
 
 - Added `square_nut` fragment. Thanks to [@MinchinWeb](https://github.com/MinchinWeb).
 - Added `wafer` bold head profile. Thanks to [@MinchinWeb](https://github.com/MinchinWeb).
+- Updated "Modern" label geometry to better match original. This label
+  now depends on the `--window-depth` to get the correct label depth; the
+  original changes depth based on the acetate size you embed into the lid.
 
 # GFLabel 0.2.0 (2025-01-03)
 

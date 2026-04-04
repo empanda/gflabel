@@ -38,6 +38,11 @@ from . import LabelBase
 logger = logging.getLogger(__name__)
 
 
+def round_step(value, step):
+    """Round to a step, the same way onshape does"""
+    return math.floor(value / step + 0.5) * step
+
+
 class ModernBase(LabelBase):
     """
     Generate a Modern-Gridfinity-Case label body
@@ -55,35 +60,44 @@ class ModernBase(LabelBase):
         #       depth = #window_t + 1.2
         # Just treat this as a configurable depth, and we can change this
         # to be something easier to remember later
-        LABEL_DEPTH = args.label_depth.to("mm").magnitude if args.label_depth else 2.2
-
-        KNOWN_WIDTHS = {3: 31.8, 4: 50.8, 5: 75.8, 6: 115.8, 7: 140.800, 8: 140.800}
-        # The main body (e.g. the angled parts) has this extra tolerance
-        BODY_WIDTH_TOL = 0.083
-        # Tolerance factor to shrink the width by
-        EXTRA_WIDTH_TOL = 0.4 - BODY_WIDTH_TOL
-
-        # The indent is 15.8mm narrower than the label width
-        INDENT_WIDTH_MARGINS = 15.8
-        # Tolerance factor to enlarge the indent width by
-        EXTRA_INDENT_TOL = 0.3
-        INDENT_DEPTH = 0.6
+        LABEL_DEPTH = (
+            args.label_depth.to("mm").magnitude
+            if args.label_depth
+            else round_step(args.window_depth, 0.2) + 1.2 + 0.2
+        )
+        INTERNAL_WIDTHS = {3: 16, 4: 35, 5: 60, 6: 100, 7: 125, 8: 125}
+        MARGIN_X = 8
+        MARGIN_Y = 4.7
+        WINDOW_HEIGHT = 13
+        INDENT_DEPTH = 0.6  # How deep the indent on the back is
+        X_OFF_FACE = 0.1415  # How far the angled faces width moves with offset face
+        X_OFF_BASE = 0.1  # How far the boxed base moves with offset face
 
         def _convert_u_to_mm(u: pint.Quantity):
-            if u.magnitude not in KNOWN_WIDTHS:
+            if u.magnitude not in INTERNAL_WIDTHS:
                 logger.error(
                     "'Modern' label u-dimensions only known for 3u-8u boxes. Specify mm for custom sizes."
                 )
                 sys.exit(1)
             return pint.Quantity(
-                KNOWN_WIDTHS[u.magnitude] - EXTRA_WIDTH_TOL,
+                INTERNAL_WIDTHS[u.magnitude] + MARGIN_X * 2 - 2 * X_OFF_BASE,
                 "mm",
             )
 
         with unit_registry.context("u", fn=_convert_u_to_mm):
             W_mm = args.width.to("mm").magnitude
-        # Basis of height: 22.4mm, but then offset faces to give this value
-        H_mm = 22.117157
+
+        # Work out the window width. We know for fixed U, but must
+        # reverse calculate for custom widths.
+        W_window = W_mm - MARGIN_X * 2 + 2 * X_OFF_BASE
+
+        # Height basis. Used for centering, but the actual height is affected by offset
+        H_mm = MARGIN_Y * 2 + WINDOW_HEIGHT
+        # Top offset due to multiple face inset in onshape. This is non-
+        # trivial to calculate as depends on offsetting doubly-angled
+        # faces. Custom heights are assumed to have the same offset.
+        Y_offset = 0.28284
+
         if args.height is not None:
             H_mm = args.height.to("mm").magnitude
 
@@ -92,34 +106,36 @@ class ModernBase(LabelBase):
                 f"Error: Cannot have label depth ({LABEL_DEPTH:.1f} mm) being greater than half the width ({W_mm / 2:.1f} mm) or height ({H_mm / 2:.1f} mm)"
             )
 
-        # Label constructed by angled extrusion of inner sketch
-        W_inner = W_mm - LABEL_DEPTH - BODY_WIDTH_TOL
-        H_inner = H_mm - LABEL_DEPTH
-
+        # Rather than sweeping a triangle (original), work out the inner
+        # edge and extrude in both directions from there
         with BuildPart() as part:
-            with BuildSketch(Plane.XY.offset(amount=-LABEL_DEPTH / 2)) as _sketch:
+            with BuildSketch() as _sketch:
                 with BuildLine() as _line:
-                    corner_length = 1.8
-                    corner_off = corner_length * math.sin(math.pi / 4)
+                    corner_offset = 1.97574  # Measured after face offset
+                    # dx = difference between actual max width (bottom)
+                    # and the width of the main body (top, chamfered edge)
+                    dx = abs(X_OFF_BASE - X_OFF_FACE)
                     Polyline(
                         [
-                            (0, -H_inner / 2),
-                            (-W_inner / 2, -H_inner / 2),
-                            (-W_inner / 2, H_inner / 2 - corner_off),
-                            (-W_inner / 2 + corner_off, H_inner / 2),
-                            (0, H_inner / 2),
+                            (0, -H_mm / 2),
+                            (-W_mm / 2 + dx, -H_mm / 2),
+                            (-W_mm / 2 + dx, H_mm / 2 - corner_offset - Y_offset),
+                            (-W_mm / 2 + dx + corner_offset, H_mm / 2 - Y_offset),
+                            (0, H_mm / 2 - Y_offset),
                         ]
                     )
                     mirror(_line.line, Plane.YZ)
                 make_face()
-            extrude(amount=LABEL_DEPTH / 2, taper=-45, both=True)
+            extrude(amount=LABEL_DEPTH / 2, taper=45)
+            mid_face = part.faces().sort_by(Axis.Z)[0]
+            extrude(mid_face, amount=LABEL_DEPTH / 2, taper=-45)
 
             # Add the flattened base
             with BuildPart(mode=Mode.PRIVATE) as _bottom_part:
                 with Locations([(0, -H_mm / 2, -LABEL_DEPTH / 2)]):
                     Box(
                         W_mm,
-                        LABEL_DEPTH,
+                        0.95858 + LABEL_DEPTH,
                         LABEL_DEPTH,
                         align=(Align.CENTER, Align.MIN, Align.CENTER),
                     )
@@ -129,15 +145,16 @@ class ModernBase(LabelBase):
                         .filter_by(Axis.Z)
                         .group_by(Axis.Y)[-1]
                     )
-                    chamfer(edges, length=1.2)
+                    chamfer(edges, length=LABEL_DEPTH)
             add(_bottom_part.part)
+            del _bottom_part
 
             # Add the indent
             # 60mm x 13mm, 4.7m from bottom
-            with Locations([(0, -H_mm / 2 + 4.7, -LABEL_DEPTH)]):
+            with Locations([(0, -H_mm / 2 + MARGIN_Y, -LABEL_DEPTH)]):
                 Box(
-                    W_mm - INDENT_WIDTH_MARGINS + EXTRA_INDENT_TOL,
-                    13,
+                    W_window,
+                    WINDOW_HEIGHT,
                     INDENT_DEPTH,
                     mode=Mode.SUBTRACT,
                     align=(Align.CENTER, Align.MIN, Align.MIN),

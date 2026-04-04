@@ -320,6 +320,12 @@ def run(argv: list[str] | None = None):
         help="The version of geometry to use for a given label system (if a system has versions). [Default: latest]",
         default="latest",
     )
+    parser.add_argument(
+        "--window-depth",
+        default=0.8,
+        type=float,
+        help="(Modern only) 'Window depth' in mm the base was rendered with. Required, because the label size changes based on window depth.",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(
