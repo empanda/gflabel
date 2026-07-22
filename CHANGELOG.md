@@ -1,5 +1,7 @@
 # GFLabel 0.3.dev
 
+- Added `flanged` feature support to the `cullbolt` bolt style.
+- Added `wafer` head profile to the `cullbolt` bolt style.
 - Added `square_nut` fragment. Thanks to [@MinchinWeb](https://github.com/MinchinWeb).
 - Added `wafer` bold head profile. Thanks to [@MinchinWeb](https://github.com/MinchinWeb).
 - Updated "Modern" label geometry to better match original. This label
