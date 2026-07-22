@@ -705,6 +705,15 @@ class CullenectBoltFragment(BoltBase):
 
     overheight = 1.6
 
+    def __init__(self, *features: str):
+        # Parse the flanged feature here (as BoltFragment does); everything
+        # else (head shape, drives, modifiers) is handled by BoltBase. Both
+        # "flanged" and "flange" must be stripped, as any leftover feature is
+        # otherwise treated as a drive.
+        self.flanged = bool({"flanged", "flange"} & {x.lower() for x in features})
+        features = tuple(x for x in features if x.lower() not in {"flanged", "flange"})
+        super().__init__(*features)
+
     def render(self, height: float, maxsize: float, options: RenderOptions) -> Sketch:
         height *= self.overheight
         # 12 mm high for 15 mm wide. Scale to this.
@@ -719,6 +728,18 @@ class CullenectBoltFragment(BoltBase):
         # Calculated values
         head_w = width - body_w
         x_head = body_w - width / 2
+
+        # Vertical half-height of the head. Shrunk when flanged so that the
+        # flange collar (added at the end) protrudes past the head, matching
+        # the washer look of BoltFragment.
+        head_h = height / 2
+        if self.flanged:
+            head_h -= head_w / 4
+
+        # Where the drive is centred and how wide it is. The wafer head
+        # overrides these, being a thin, low-profile head.
+        drive_w = head_w
+        drive_center_x = width / 2 - head_w / 2
 
         x0 = -width / 2
 
@@ -758,38 +779,57 @@ class CullenectBoltFragment(BoltBase):
                 if self.headshape == "pan":
                     head_radius = 2
                     head_arc = CenterArc(
-                        (width / 2 - head_radius, height / 2 - head_radius),
+                        (width / 2 - head_radius, head_h - head_radius),
                         head_radius,
                         0,
                         90,
                     )
                     Line([head_arc @ 0, (width / 2, 0)])
-                    _top = Line([(x_head, height / 2), head_arc @ 1])
+                    _top = Line([(x_head, head_h), head_arc @ 1])
                     head_connector = _top @ 0
                 elif self.headshape == "countersunk":
-                    _top = Line([(width / 2, height / 2), (width / 2, 0)])
+                    _top = Line([(width / 2, head_h), (width / 2, 0)])
                     head_connector = _top @ 0
                 elif self.headshape == "socket":
                     head_connector = (
                         Polyline(
                             [
-                                (x_head, height / 2),
-                                (width / 2, height / 2),
+                                (x_head, head_h),
+                                (width / 2, head_h),
                                 (width / 2, 0),
                             ]
                         )
                         @ 0
                     )
+                elif self.headshape == "wafer":
+                    # A thin, low-profile head: like the socket head but only
+                    # a third as thick (matching BoltFragment's wafer), sitting
+                    # on a short flat shoulder. The drive is shrunk to fit
+                    # within the thinner head.
+                    x_wafer = width / 2 - head_w / 3
+                    head_connector = (
+                        Polyline(
+                            [
+                                (x_wafer, thread_tip_height - thread_depth),
+                                (x_wafer, head_h),
+                                (width / 2, head_h),
+                                (width / 2, 0),
+                            ]
+                        )
+                        @ 0
+                    )
+                    drive_w = head_w / 3
+                    drive_center_x = width / 2 - drive_w / 2
                 elif self.headshape == "round":
                     # Two cases:
-                    # - head wider than height/2, circular head and flat
-                    # - head smaller than height/2, squashed head
-                    if head_w > height / 2:
-                        x_roundhead = width / 2 - height / 2
-                        _arc = CenterArc((x_roundhead, 0), height / 2, 0, 90)
+                    # - head wider than head_h, circular head and flat
+                    # - head smaller than head_h, squashed head
+                    if head_w > head_h:
+                        x_roundhead = width / 2 - head_h
+                        _arc = CenterArc((x_roundhead, 0), head_h, 0, 90)
                         flat = Line(
                             [
-                                (x_head, height / 2),
+                                (x_head, head_h),
                                 _arc @ 1,
                             ]
                         )
@@ -800,6 +840,8 @@ class CullenectBoltFragment(BoltBase):
                         raise NotImplementedError(
                             "Round head on this aspect is not implemented. This should never happen."
                         )
+                else:
+                    raise ValueError(f"Unknown bolt head type: {self.headshape!r}")
 
                 Polyline(
                     [
@@ -815,15 +857,25 @@ class CullenectBoltFragment(BoltBase):
             if self.drives:
                 # thread_depth/2 is just a "fudge" to slightly off-center it
                 fudge = thread_depth / 2
-                location = Location((width / 2 - head_w / 2 - fudge, 0))
+                location = Location((drive_center_x - fudge, 0))
                 add(
                     compound_drive_shape(
                         self.drives,
-                        radius=head_w * 0.9 / 2,
-                        outer_radius=head_w / 2,
+                        radius=drive_w * 0.9 / 2,
+                        outer_radius=drive_w / 2,
                     ).locate(location),
                     mode=Mode.SUBTRACT,
                 )
+
+            # A washer-style flange collar at the base of the head. head_h has
+            # already been shrunk (above) so this full-height bar protrudes.
+            if self.flanged:
+                with Locations([(x_head, 0)]):
+                    Rectangle(
+                        head_w / 4,
+                        height,
+                        align=(Align.CENTER, Align.CENTER),
+                    )
 
         if "flip" in self.modifiers:
             return sketch.sketch.scale(-1)

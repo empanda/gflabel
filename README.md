@@ -308,8 +308,7 @@ There are two classes of bolt/screw representation:
   area is too small to fit the entire bolt on, then the bolt will be rendered
   with a "break" in the middle, indicating that it does not show the whole
   bolt length. It will also accept a `slot` feature that marks a small indent
-  on the top of the head, and `flanged` in order to render a washer-style
-  flange at the bottom of the active head.
+  on the top of the head.
 - `cullbolt` corresponding to the bolt style included with [Cullen J Webb's swappable
   gridfinity label][cullenect] system. It doesn't
   change length, but it will accept any combination of screw drive specifier
@@ -319,7 +318,8 @@ There are two classes of bolt/screw representation:
 
 Both types of bolts will accept a head style, one of `pan`, `socket`, `round`,
 `countersunk` or `wafer`. Both can be marked as `tapping` to have a pointed
-tip, and both can be pointed backwards by adding the `flipped` feature.
+tip, `flanged` to render a washer-style flange at the base of the head, and both
+can be pointed backwards by adding the `flipped` feature.
 
 Examples showing some differences between the two bolts:
 

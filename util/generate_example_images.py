@@ -132,14 +132,17 @@ if args.bolt:
         ["socket"],
         ["round"],
         ["countersunk"],
+        ["wafer"],
         ["tapping"],
         ["flipped"],
+        ["pan", "flanged"],
+        ["socket", "flanged"],
     ]:
         text = ",".join(style)
         command.extend([f"{{bolt(10,{text})}}", text, f"{{cullbolt({text})}}"])
 
     # Bolt-only
-    for style in [["slot"], ["pan,flanged"], ["wafer"]]:
+    for style in [["slot"]]:
         text = ",".join(style)
         command.extend([f"{{bolt(10,{text})}}", text, ""])
 
