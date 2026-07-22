@@ -360,6 +360,21 @@ def _fragment_hexnut(height: float, _maxsize: float) -> Sketch:
     return sketch.sketch
 
 
+@fragment("locknut", examples=["{locknut}"])
+def _fragment_locknut(height: float, _maxsize: float) -> Sketch:
+    """Hexagonal nut with a nylon-insert collar ring."""
+    with BuildSketch(mode=Mode.PRIVATE) as sketch:
+        RegularPolygon(height / 2, side_count=6)
+        # Nylon-insert collar, shown as a thin concentric ring groove
+        collar_radius = height / 2 * 0.62
+        collar_width = height / 2 * 0.08
+        Circle(collar_radius + collar_width / 2, mode=Mode.SUBTRACT)
+        Circle(collar_radius - collar_width / 2, mode=Mode.ADD)
+        # Center hole, matching {nut}
+        Circle(height / 2 * 0.4, mode=Mode.SUBTRACT)
+    return sketch.sketch
+
+
 @fragment("nut_profile", examples=["{nut_profile}"])
 def _fragment_nut_profile(height: float, _maxsize: float | None = None) -> Sketch:
     """Hex nut profile."""
