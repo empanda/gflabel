@@ -391,6 +391,22 @@ def _fragment_locknut(height: float, _maxsize: float) -> Sketch:
     return sketch.sketch
 
 
+@fragment("flange_nut", "flangenut", examples=["{flange_nut}"])
+def _fragment_flange_nut(height: float, _maxsize: float) -> Sketch:
+    """Hexagonal nut with a circular flange."""
+    with BuildSketch(mode=Mode.PRIVATE) as sketch:
+        # Circular flange - the widest feature.
+        Circle(height / 2)
+        # Hex nut body, delineated from the flange by a thin hexagonal groove.
+        hex_radius = height / 2 * 0.7
+        groove = height / 2 * 0.06
+        RegularPolygon(hex_radius + groove, side_count=6, mode=Mode.SUBTRACT)
+        RegularPolygon(hex_radius - groove, side_count=6, mode=Mode.ADD)
+        # Center hole, matching {nut}
+        Circle(height / 2 * 0.4, mode=Mode.SUBTRACT)
+    return sketch.sketch
+
+
 @fragment("nut_profile", examples=["{nut_profile}"])
 def _fragment_nut_profile(height: float, _maxsize: float | None = None) -> Sketch:
     """Hex nut profile."""
