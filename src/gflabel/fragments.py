@@ -317,11 +317,27 @@ def _fragment_insert(height: float, _maxsize: float) -> Sketch:
     """Representation of a threaded insert."""
     with BuildSketch() as sketch:
         with BuildLine() as line:
+            # Full outline as a single closed loop. Building it directly
+            # (rather than mirroring a quarter) avoids leaving collinear
+            # seam vertices on the edges, which make fillet_2d fail with
+            # "BRep_API: command not done".
             Polyline(
-                [(-3, 0), (-3, 1.25), (-4, 1.25), (-4, 3.75), (0, 3.75)],
+                [
+                    (-3, 1.25),
+                    (-4, 1.25),
+                    (-4, 3.75),
+                    (4, 3.75),
+                    (4, 1.25),
+                    (3, 1.25),
+                    (3, -1.25),
+                    (4, -1.25),
+                    (4, -3.75),
+                    (-4, -3.75),
+                    (-4, -1.25),
+                    (-3, -1.25),
+                ],
+                close=True,
             )
-            mirror(line.line, Plane.XZ)
-            mirror(line.line, Plane.YZ)
             fillet(line.vertices(), radius=0.2)
         make_face()
         with Locations([(0, -3.76 - 2.5 / 2)]):
