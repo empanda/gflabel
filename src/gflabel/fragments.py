@@ -751,14 +751,25 @@ class CullenectBoltFragment(BoltBase):
         if self.flanged:
             head_h -= head_w / 4
 
-        # Where the drive is centred and how wide it is. The wafer head
-        # overrides these, being a thin, low-profile head.
-        drive_w = head_w
-        drive_center_x = width / 2 - head_w / 2
+        # The wafer head is a thin, low-profile head; every other head is a
+        # full head_w thick. The head meets the body at x_head_base, and the
+        # threads run all the way up to it - so the thinner wafer head simply
+        # has a longer threaded body.
+        head_thickness = head_w / 3 if self.headshape == "wafer" else head_w
+        x_head_base = width / 2 - head_thickness
+        body_length = width - head_thickness
+
+        # Where the drive is centred and how wide it is (shrunk for wafer).
+        drive_w = head_thickness
+        drive_center_x = width / 2 - head_thickness / 2
 
         x0 = -width / 2
 
+        # Keep a consistent thread pitch, but run enough whole threads to
+        # reach the head base (the thinner wafer head needs more).
         thread_pitch = body_w / n_threads
+        n_threads = max(1, round(body_length / thread_pitch))
+        thread_pitch = body_length / n_threads
         thread_lines: list[tuple[float, float]] = [(x0, 0)]
         thread_tip_height = (height / 4) + thread_depth
 
@@ -818,23 +829,20 @@ class CullenectBoltFragment(BoltBase):
                     )
                 elif self.headshape == "wafer":
                     # A thin, low-profile head: like the socket head but only
-                    # a third as thick (matching BoltFragment's wafer), sitting
-                    # on a short flat shoulder. The drive is shrunk to fit
-                    # within the thinner head.
-                    x_wafer = width / 2 - head_w / 3
+                    # a third as thick (matching BoltFragment's wafer). The
+                    # threads run all the way to its base at x_head_base, and
+                    # the drive is shrunk to fit - both handled above via
+                    # head_thickness.
                     head_connector = (
                         Polyline(
                             [
-                                (x_wafer, thread_tip_height - thread_depth),
-                                (x_wafer, head_h),
+                                (x_head_base, head_h),
                                 (width / 2, head_h),
                                 (width / 2, 0),
                             ]
                         )
                         @ 0
                     )
-                    drive_w = head_w / 3
-                    drive_center_x = width / 2 - drive_w / 2
                 elif self.headshape == "round":
                     # Two cases:
                     # - head wider than head_h, circular head and flat
@@ -861,7 +869,7 @@ class CullenectBoltFragment(BoltBase):
                 Polyline(
                     [
                         *thread_lines,
-                        (x_head, thread_tip_height - thread_depth),
+                        (x_head_base, thread_tip_height - thread_depth),
                         head_connector,
                     ]
                 )
@@ -885,7 +893,7 @@ class CullenectBoltFragment(BoltBase):
             # A washer-style flange collar at the base of the head. head_h has
             # already been shrunk (above) so this full-height bar protrudes.
             if self.flanged:
-                with Locations([(x_head, 0)]):
+                with Locations([(x_head_base, 0)]):
                     Rectangle(
                         head_w / 4,
                         height,
