@@ -492,6 +492,51 @@ def _fragment_tnut(height: float, _maxsize: float) -> Sketch:
     return sketch.sketch
 
 
+@fragment("bearing", examples=["{bearing}"])
+def _fragment_bearing(height: float, _maxsize: float) -> Sketch:
+    """Ball bearing symbol: outer and inner races with balls between."""
+    outer_r = height / 2
+    race_thickness = outer_r * 0.22
+    bore_r = outer_r * 0.34
+    ball_pitch_r = outer_r * 0.67
+    ball_r = outer_r * 0.09
+
+    with BuildSketch(mode=Mode.PRIVATE) as sketch:
+        # Outer race
+        Circle(outer_r)
+        Circle(outer_r - race_thickness, mode=Mode.SUBTRACT)
+        # Inner race (hub)
+        Circle(bore_r + race_thickness, mode=Mode.ADD)
+        Circle(bore_r, mode=Mode.SUBTRACT)
+        # Balls riding in the gap between the races
+        with PolarLocations(ball_pitch_r, 8):
+            Circle(ball_r)
+    return sketch.sketch
+
+
+@fragment("spring", examples=["{spring}"])
+def _fragment_spring(height: float, _maxsize: float) -> Sketch:
+    """Coil spring symbol: a zigzag line representing coil turns."""
+    t = height * 0.06  # Line half-thickness
+    amplitude = height / 2 - t
+    step = height * 0.45
+    n_coils = 5
+
+    points = [(0, 0)]
+    for i in range(n_coils):
+        x = (i + 1) * step
+        y = amplitude if i % 2 == 0 else -amplitude
+        points.append((x, y))
+    points.append((points[-1][0] + step, 0))
+
+    with BuildSketch(mode=Mode.PRIVATE) as sketch:
+        with BuildLine():
+            Polyline(points)
+            offset(amount=t)
+        make_face()
+    return sketch.sketch
+
+
 class BoltBase(Fragment):
     """Base class for handling common bolt/screw configuration"""
 
