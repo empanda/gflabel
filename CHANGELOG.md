@@ -1,6 +1,8 @@
 # GFLabel 0.3.dev
 
 - Added `locknut` fragment.
+- Added `bearing` fragment.
+- Added `spring` fragment.
 - Added `flanged` feature support to the `cullbolt` bolt style.
 - Added `wafer` head profile to the `cullbolt` bolt style.
 - Added `square_nut` fragment. Thanks to [@MinchinWeb](https://github.com/MinchinWeb).

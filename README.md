@@ -262,6 +262,7 @@ A list of all the fragments currently recognised:
 | ...               | Blank area that always expands to fill available space.<br><br>If specified multiple times, the areas will be balanced between<br>entries. This can be used to justify/align text. |
 | 1, 4.2, ...       | A gap of specific width, in mm.                                   |
 | &lt;, &gt;        | Only used at the start of a single label or column. Specifies that all lines in the area should be left or right aligned. Invalid when specified elsewhere. |
+| bearing           | Ball bearing symbol: outer and inner races with balls between.    |
 | bolt              | Variable length bolt, in the style of Printables pred-box labels.<br><br>If the requested bolt is longer than the available space, then the<br>bolt will be as large as possible with a broken thread. |
 | box               | Arbitrary width, height centered box. If height is not specified, will expand to row height. |
 | circle            | A filled circle.                                                  |
@@ -278,6 +279,7 @@ A list of all the fragments currently recognised:
 | mqr, microqr      | Generate a [Micro QR Code](https://en.wikipedia.org/wiki/QR_code#Micro_QR_code) with data. Same arguments as qr, except does not support the `H` level. |
 | nut_profile       | Rectangle with two horizontal lines, as the side view of a hex nut. |
 | qr, qrcode        | Generate a QR from text or URL data. Call as `qr(data[,EC])` where `EC` is the error recovery capacity, and can be `L`(7%), `M`(15%, default), `Q`(25%) or `H`(30%). For best results, ensure the label height is at least 10mm for reliable scanning. |
+| spring            | Coil spring symbol: a zigzag line representing coil turns.        |
 | square_nut        | A square with a center hole.                                      |
 | sym, symbol       | Render an electronic symbol.                                      |
 | threaded_insert   | Representation of a threaded insert.                              |
