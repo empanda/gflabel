@@ -1,5 +1,6 @@
 # GFLabel 0.3.dev
 
+- Added `flange_nut` fragment.
 - Added `locknut` fragment.
 - Added `bearing` fragment.
 - Added `spring` fragment.

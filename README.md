@@ -267,6 +267,7 @@ A list of all the fragments currently recognised:
 | box               | Arbitrary width, height centered box. If height is not specified, will expand to row height. |
 | circle            | A filled circle.                                                  |
 | cullbolt          | Alternate bolt representation incorporating screw drive, with fixed length, as used by the [Cullenect][cullenect] system. |
+| flange_nut        | Hexagonal nut with a circular flange.                             |
 | head              | Screw head with specifiable head-shape.                           |
 | hexhead           | Hexagonal screw head. Will accept drives, but not compulsory.     |
 | hexnut, nut       | Hexagonal outer profile nut with circular cutout.                 |
