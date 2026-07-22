@@ -518,16 +518,22 @@ def _fragment_bearing(height: float, _maxsize: float) -> Sketch:
 def _fragment_spring(height: float, _maxsize: float) -> Sketch:
     """Coil spring symbol: a zigzag line representing coil turns."""
     t = height * 0.06  # Line half-thickness
-    amplitude = height / 2 - t
-    step = height * 0.45
     n_coils = 5
 
-    points = [(0, 0)]
+    # The coil travels vertically (up and down) and spans the label height,
+    # so the fragment stays a normal line-height tall; the zigzag amplitude
+    # sets its width.
+    travel = height - 2 * t
+    step = travel / (n_coils + 1)
+    amplitude = step
+    y0 = -travel / 2  # Centre the coil vertically
+
+    points = [(0, y0)]
     for i in range(n_coils):
-        x = (i + 1) * step
-        y = amplitude if i % 2 == 0 else -amplitude
+        y = y0 + (i + 1) * step
+        x = amplitude if i % 2 == 0 else -amplitude
         points.append((x, y))
-    points.append((points[-1][0] + step, 0))
+    points.append((0, y0 + (n_coils + 1) * step))
 
     with BuildSketch(mode=Mode.PRIVATE) as sketch:
         with BuildLine():
